@@ -1,0 +1,26 @@
+{
+  "dependencies": {
+    "typescript": "^6.0.3",
+    "zod": "^4.4.3"
+  },
+  "name": "agenticplanning",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "devDependencies": {
+    "@types/express": "^5.0.6"
+  },
+  "workspaces": [
+    "shared",
+    "client",
+    "server",
+    "workers"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module"
+}
