@@ -1,16 +1,25 @@
 import type { Request, Response } from 'express';
 import { db } from '../services/db.js';
+import type { AuthenticatedRequest } from '../middleware/authMiddleware.js';
 
-// Placeholder UUIDs — replaced when auth is implemented
-const DEFAULT_PROJECT_ID = '00000000-0000-0000-0000-000000000001';
-const DEFAULT_USER_ID = '00000000-0000-0000-0000-000000000002';
+export async function handleBootstrap(req: Request, res: Response): Promise<void> {
+    const { userId } = (req as AuthenticatedRequest).user;
 
-export async function handleBootstrap(_req: Request, res: Response): Promise<void> {
-    await db.query(
-        `INSERT INTO projects (id, user_id, name)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (id) DO NOTHING`,
-        [DEFAULT_PROJECT_ID, DEFAULT_USER_ID, 'Default Project']
+    const existing = await db.query<{ id: string }>(
+        'SELECT id FROM projects WHERE user_id = $1 LIMIT 1',
+        [userId]
     );
-    res.status(200).json({ projectId: DEFAULT_PROJECT_ID });
+    if (existing.rows[0]) {
+        res.status(200).json({ projectId: existing.rows[0].id });
+        return;
+    }
+
+    const result = await db.query<{ id: string }>(
+        'INSERT INTO projects (user_id, name) VALUES ($1, $2) RETURNING id',
+        [userId, 'My Project']
+    );
+    const projectId = result.rows[0]?.id;
+    if (!projectId) throw new Error('Failed to create project');
+
+    res.status(200).json({ projectId });
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { useGraphStore } from '../store/graphStore.ts';
+import { authFetch } from '../lib/api.ts';
 import type { WorkerEvent } from '@project/shared';
 
 export function useSocket(projectId: string): void {
@@ -23,7 +24,7 @@ export function useSocket(projectId: string): void {
 
         socket.on('rollback', (state: Parameters<typeof applyRollback>[0]) => {
             applyRollback(state);
-            fetch(`/projects/${projectId}/history`)
+            authFetch(`/projects/${projectId}/history`)
                 .then((r) => r.json())
                 .then((data) => setHistory(data as Parameters<typeof setHistory>[0]))
                 .catch(() => undefined);
@@ -31,7 +32,7 @@ export function useSocket(projectId: string): void {
 
         socket.on('node:moved', (state: Parameters<typeof applyRollback>[0]) => {
             applyRollback(state);
-            fetch(`/projects/${projectId}/history`)
+            authFetch(`/projects/${projectId}/history`)
                 .then((r) => r.json())
                 .then((data) => setHistory(data as Parameters<typeof setHistory>[0]))
                 .catch(() => undefined);

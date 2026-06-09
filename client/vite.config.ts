@@ -6,6 +6,7 @@ export default defineConfig({
     server: {
         port: 3000,
         proxy: {
+            '/auth': 'http://localhost:5001',
             '/chat': 'http://localhost:5001',
             '/health': 'http://localhost:5001',
             '/projects': 'http://localhost:5001',

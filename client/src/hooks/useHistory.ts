@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useGraphStore } from '../store/graphStore.ts';
+import { authFetch } from '../lib/api.ts';
 
 export function useHistory(projectId: string): void {
     const setHistory = useGraphStore((state) => state.setHistory);
@@ -7,7 +8,7 @@ export function useHistory(projectId: string): void {
     useEffect(() => {
         async function fetchHistory() {
             try {
-                const res = await fetch(`/projects/${projectId}/history`);
+                const res = await authFetch(`/projects/${projectId}/history`);
                 if (!res.ok) return;
                 const data = await res.json() as Parameters<typeof setHistory>[0];
                 setHistory(data);

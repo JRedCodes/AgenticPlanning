@@ -1,11 +1,13 @@
 import Canvas from './components/Canvas.tsx';
 import ChatPanel from './components/ChatPanel.tsx';
 import HistoryPanel from './components/HistoryPanel.tsx';
+import AuthModal from './components/AuthModal.tsx';
 import { useSocket } from './hooks/useSocket.ts';
 import { useHistory } from './hooks/useHistory.ts';
 import { useProject } from './hooks/useProject.ts';
+import { useAuthStore } from './store/authStore.ts';
 
-export default function App() {
+function Workspace() {
     const projectId = useProject();
 
     useSocket(projectId ?? '');
@@ -35,4 +37,10 @@ export default function App() {
             <ChatPanel projectId={projectId} />
         </div>
     );
+}
+
+export default function App() {
+    const token = useAuthStore((state) => state.token);
+    if (!token) return <AuthModal />;
+    return <Workspace />;
 }

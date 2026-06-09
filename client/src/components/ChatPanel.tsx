@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Send } from 'lucide-react';
 import { useGraphStore } from '../store/graphStore.ts';
+import { authFetch } from '../lib/api.ts';
 
 interface ChatPanelProps {
     projectId: string;
@@ -17,10 +18,10 @@ export default function ChatPanel({ projectId }: ChatPanelProps) {
 
         setIsLoading(true);
         try {
-            await fetch('/chat', {
+            await authFetch('/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ projectId, userId: 'user-1', message }),
+                body: JSON.stringify({ projectId, message }),
             });
             setMessage('');
         } catch (err) {
