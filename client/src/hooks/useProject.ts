@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useGraphStore } from '../store/graphStore.ts';
+import { authFetch } from '../lib/api.ts';
 
 export function useProject(): string | null {
     const projectId = useGraphStore((state) => state.projectId);
@@ -8,7 +9,7 @@ export function useProject(): string | null {
     useEffect(() => {
         async function bootstrap() {
             try {
-                const res = await fetch('/projects/bootstrap');
+                const res = await authFetch('/projects/bootstrap');
                 if (!res.ok) return;
                 const { projectId: id } = await res.json() as { projectId: string };
                 setProjectId(id);

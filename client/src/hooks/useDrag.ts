@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { applyNodeChanges, type NodeChange } from '@xyflow/react';
 import { useGraphStore, type SystemNodeData } from '../store/graphStore.ts';
+import { authFetch } from '../lib/api.ts';
 import type { Node } from '@xyflow/react';
 
 export function useDrag(projectId: string) {
@@ -12,7 +13,6 @@ export function useDrag(projectId: string) {
     const setHistory = useGraphStore((state) => state.setHistory);
 
     const onNodesChange = useCallback((changes: NodeChange<Node<SystemNodeData>>[]) => {
-        // Apply every change to local state immediately for smooth interaction
         setNodes(applyNodeChanges(changes, useGraphStore.getState().nodes));
 
         if (isWorkerActive || !activeCommitId) return;
@@ -27,15 +27,14 @@ export function useDrag(projectId: string) {
 
         async function persist() {
             try {
-                const res = await fetch(`/projects/${projectId}/drag`, {
+                const res = await authFetch(`/projects/${projectId}/drag`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ expectedCommitId: activeCommitId, updates: finishedDrags }),
                 });
 
                 if (res.status === 409) {
-                    // Concurrent write detected — snap canvas back to server state
-                    const stateRes = await fetch(`/projects/${projectId}/state`);
+                    const stateRes = await authFetch(`/projects/${projectId}/state`);
                     if (stateRes.ok) {
                         const state = await stateRes.json() as Parameters<typeof applyRollback>[0];
                         applyRollback(state);
@@ -46,7 +45,7 @@ export function useDrag(projectId: string) {
                 if (res.ok) {
                     const { commitId } = await res.json() as { commitId: string };
                     setActiveCommitId(commitId);
-                    const histRes = await fetch(`/projects/${projectId}/history`);
+                    const histRes = await authFetch(`/projects/${projectId}/history`);
                     if (histRes.ok) {
                         const history = await histRes.json() as Parameters<typeof setHistory>[0];
                         setHistory(history);
