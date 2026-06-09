@@ -1,13 +1,13 @@
 import http from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
-import app from './app.js';
+import { createApp } from './app.js';
 import { connectRedis } from './services/redisService.js';
 import { startRedisSubscriber } from './services/redisSubscriber.js';
 
 dotenv.config();
 
-const server = http.createServer(app);
+const server = http.createServer();
 
 const io = new Server(server, {
     cors: {
@@ -34,6 +34,7 @@ const PORT = process.env.PORT || 5000;
 async function start(): Promise<void> {
     await connectRedis();
     await startRedisSubscriber(io);
+    server.on('request', createApp(io));
     server.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
     });

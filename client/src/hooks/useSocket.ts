@@ -6,6 +6,8 @@ import type { WorkerEvent } from '@project/shared';
 export function useSocket(projectId: string): void {
     const socketRef = useRef<Socket | null>(null);
     const applyWorkerEvent = useGraphStore((state) => state.applyWorkerEvent);
+    const applyRollback = useGraphStore((state) => state.applyRollback);
+    const setHistory = useGraphStore((state) => state.setHistory);
 
     useEffect(() => {
         const socket = io('http://localhost:5001');
@@ -19,8 +21,17 @@ export function useSocket(projectId: string): void {
             applyWorkerEvent(event);
         });
 
+        socket.on('rollback', (state: Parameters<typeof applyRollback>[0]) => {
+            applyRollback(state);
+            // re-fetch history so the panel reflects the new head
+            fetch(`/projects/${projectId}/history`)
+                .then((r) => r.json())
+                .then((data) => setHistory(data as Parameters<typeof setHistory>[0]))
+                .catch(() => undefined);
+        });
+
         return () => {
             socket.disconnect();
         };
-    }, [projectId, applyWorkerEvent]);
+    }, [projectId, applyWorkerEvent, applyRollback, setHistory]);
 }
