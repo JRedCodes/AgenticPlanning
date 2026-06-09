@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Send } from 'lucide-react';
+import { Send, LogOut } from 'lucide-react';
 import { useGraphStore } from '../store/graphStore.ts';
+import { useAuthStore } from '../store/authStore.ts';
 import { authFetch } from '../lib/api.ts';
 
 interface ChatPanelProps {
@@ -11,6 +12,14 @@ export default function ChatPanel({ projectId }: ChatPanelProps) {
     const [message, setMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const isWorkerActive = useGraphStore((state) => state.isWorkerActive);
+    const resetGraph = useGraphStore((state) => state.reset);
+    const user = useAuthStore((state) => state.user);
+    const clearAuth = useAuthStore((state) => state.clearAuth);
+
+    function handleSignOut() {
+        resetGraph();
+        clearAuth();
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -42,7 +51,28 @@ export default function ChatPanel({ projectId }: ChatPanelProps) {
             background: '#111120',
         }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #2d2d4e' }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#a78bfa' }}>AI Planner</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#a78bfa' }}>AI Planner</div>
+                    <button
+                        onClick={handleSignOut}
+                        title="Sign out"
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: '#475569',
+                            padding: 4,
+                            display: 'flex',
+                            alignItems: 'center',
+                            borderRadius: 4,
+                        }}
+                    >
+                        <LogOut size={14} />
+                    </button>
+                </div>
+                <div style={{ fontSize: 11, color: '#475569', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {user?.email}
+                </div>
                 <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
                     {busy ? 'Generating architecture...' : 'Describe your system'}
                 </div>
