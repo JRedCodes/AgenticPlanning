@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { chatQueue } from '../services/queueProducer.js';
+import { getCurrentState } from '../services/gitEngine.js';
 import type { AuthenticatedRequest } from '../middleware/authMiddleware.js';
 
 export async function handleChat(req: Request, res: Response): Promise<void> {
@@ -11,6 +12,19 @@ export async function handleChat(req: Request, res: Response): Promise<void> {
         return;
     }
 
-    const job = await chatQueue.add('chat-request', { projectId, userId, message });
+    const current = await getCurrentState(projectId);
+    const existingNodes = current?.graphState.nodes.map(n => ({
+        id: n.id,
+        title: n.data.title,
+        dependencies: n.data.dependencies,
+    })) ?? [];
+
+    const job = await chatQueue.add('chat-request', {
+        projectId,
+        userId,
+        message,
+        ...(existingNodes.length > 0 ? { existingNodes } : {}),
+    });
+
     res.status(202).json({ jobId: job.id });
 }

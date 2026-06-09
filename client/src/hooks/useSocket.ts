@@ -30,6 +30,7 @@ export function useSocket(projectId: string): void {
             applyWorkerEvent(event);
 
             if (event.type === 'structure:complete') {
+                useGraphStore.getState().updateChatMessage(event.jobId, 'Building syntax...');
                 useGraphStore.getState().setNeedsFitView(true);
                 const { nodes, edges } = useGraphStore.getState();
                 applyElkLayout(nodes, edges)
@@ -41,12 +42,14 @@ export function useSocket(projectId: string): void {
             }
 
             if (event.type === 'commit:saved') {
+                useGraphStore.getState().updateChatMessage(event.jobId, 'Done');
                 refetchHistory(projectId).catch(() =>
                     toast.error('Failed to refresh history')
                 );
             }
 
             if (event.type === 'job:error') {
+                useGraphStore.getState().updateChatMessage(event.jobId, `Failed: ${event.message}`);
                 toast.error(`Generation failed: ${event.message}`);
             }
         });

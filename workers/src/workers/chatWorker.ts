@@ -4,16 +4,23 @@ import { publishEvent } from '../services/redisPublisher.js';
 import { runStructureAgent, type StructureOutput } from '../agents/structureAgent.js';
 import { runSyntaxAgent } from '../agents/syntaxAgent.js';
 import { validateStructure, validateSyntax } from '../lib/guardrails.js';
-import type { ChatJobData } from '@project/shared';
+import type { ChatJobData, ExistingNode } from '@project/shared';
 
 const MAX_STRUCTURE_RETRIES = 2;
 const MAX_SYNTAX_RETRIES = 1;
 
-async function generateStructureWithGuardrails(message: string): Promise<StructureOutput> {
+async function generateStructureWithGuardrails(
+    message: string,
+    existingNodes?: ExistingNode[]
+): Promise<StructureOutput> {
     let lastErrors: string[] = [];
 
     for (let attempt = 0; attempt <= MAX_STRUCTURE_RETRIES; attempt++) {
-        const output = await runStructureAgent(message, attempt > 0 ? lastErrors : undefined);
+        const output = await runStructureAgent(
+            message,
+            existingNodes,
+            attempt > 0 ? lastErrors : undefined
+        );
         const result = validateStructure(output);
 
         if (result.valid) return output;
@@ -59,7 +66,7 @@ export function createChatWorker(): Worker<ChatJobData> {
 
             try {
                 // Phase 1: generate and validate graph structure
-                const { nodes, edges } = await generateStructureWithGuardrails(message);
+                const { nodes, edges } = await generateStructureWithGuardrails(message, job.data.existingNodes);
 
                 await publishEvent(projectId, { type: 'structure:complete', nodes, edges, jobId });
 

@@ -22,6 +22,13 @@ export interface ProjectInfo {
     createdAt: string;
 }
 
+export interface ChatMessage {
+    id: string;
+    role: 'user' | 'assistant';
+    content: string;
+    jobId?: string;
+}
+
 type SystemNode = Node<SystemNodeData>;
 
 interface GraphStore {
@@ -40,6 +47,9 @@ interface GraphStore {
     projects: ProjectInfo[];
     setProjects: (projects: ProjectInfo[]) => void;
     switchProject: (projectId: string) => void;
+    chatMessages: ChatMessage[];
+    addChatMessage: (msg: Omit<ChatMessage, 'id'>) => void;
+    updateChatMessage: (jobId: string, content: string) => void;
     needsFitView: boolean;
     setNeedsFitView: (value: boolean) => void;
     reset: () => void;
@@ -54,9 +64,18 @@ export const useGraphStore = create<GraphStore>((set) => ({
     activeCommitId: null,
     projectId: null,
 
+    chatMessages: [],
     setNodes: (nodes) => set({ nodes }),
     setEdges: (edges) => set({ edges }),
     setHistory: (history) => set({ commitHistory: history }),
+    addChatMessage: (msg) => set((state) => ({
+        chatMessages: [...state.chatMessages, { ...msg, id: crypto.randomUUID() }],
+    })),
+    updateChatMessage: (jobId, content) => set((state) => ({
+        chatMessages: state.chatMessages.map(m =>
+            m.jobId === jobId ? { ...m, content } : m
+        ),
+    })),
     needsFitView: false,
     projects: [],
     setActiveCommitId: (commitId) => set({ activeCommitId: commitId }),
@@ -70,9 +89,10 @@ export const useGraphStore = create<GraphStore>((set) => ({
         activeCommitId: null,
         isWorkerActive: false,
         needsFitView: false,
+        chatMessages: [],
     }),
     setNeedsFitView: (value) => set({ needsFitView: value }),
-    reset: () => set({ nodes: [], edges: [], commitHistory: [], activeCommitId: null, projectId: null, isWorkerActive: false, needsFitView: false, projects: [] }),
+    reset: () => set({ nodes: [], edges: [], commitHistory: [], activeCommitId: null, projectId: null, isWorkerActive: false, needsFitView: false, projects: [], chatMessages: [] }),
 
     applyRollback: (state) => set({
         activeCommitId: state.commitId,
