@@ -2,6 +2,13 @@ import { db } from './db.js';
 import type { GraphState, GraphNode, GraphEdge, NodeData } from '@project/shared';
 import type { PoolClient } from 'pg';
 
+export class ConflictError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'ConflictError';
+    }
+}
+
 export interface CommitRecord {
     id: string;
     parentCommitId: string | null;
@@ -160,4 +167,80 @@ export async function getCommitHistory(projectId: string): Promise<CommitRecord[
         commitMessage: r.commit_message,
         createdAt: r.created_at,
     }));
+}
+
+export async function createCommitWithLock(
+    projectId: string,
+    expectedCommitId: string,
+    message: string,
+    positionUpdates: Array<{ nodeId: string; position: { x: number; y: number } }>
+): Promise<string> {
+    const client = await db.getClient();
+    try {
+        await client.query('BEGIN');
+
+        const headResult = await client.query<{ current_commit_id: string }>(
+            `SELECT current_commit_id FROM project_heads WHERE project_id = $1 FOR UPDATE`,
+            [projectId]
+        );
+        const currentCommitId = headResult.rows[0]?.current_commit_id;
+        if (!currentCommitId) throw new Error('Project head not found');
+        if (currentCommitId !== expectedCommitId) {
+            throw new ConflictError('Canvas was updated by another operation — please retry');
+        }
+
+        const [nodesResult, edgesResult] = await Promise.all([
+            client.query<{ node_id: string; type: string; position_x: number; position_y: number; data: NodeData }>(
+                `SELECT node_id, type, position_x, position_y, data FROM graph_nodes WHERE commit_id = $1`,
+                [currentCommitId]
+            ),
+            client.query<{ edge_id: string; source_id: string; target_id: string; type: string | null }>(
+                `SELECT edge_id, source_id, target_id, type FROM graph_edges WHERE commit_id = $1`,
+                [currentCommitId]
+            ),
+        ]);
+
+        const positionMap = new Map(positionUpdates.map(u => [u.nodeId, u.position]));
+
+        const updatedNodes: GraphNode[] = nodesResult.rows.map(n => {
+            const newPos = positionMap.get(n.node_id);
+            return {
+                id: n.node_id,
+                type: n.type,
+                position: newPos ?? { x: n.position_x, y: n.position_y },
+                data: n.data,
+            };
+        });
+
+        const currentEdges: GraphEdge[] = edgesResult.rows.map(e => ({
+            id: e.edge_id,
+            source: e.source_id,
+            target: e.target_id,
+            ...(e.type ? { type: e.type } : {}),
+        }));
+
+        const commitResult = await client.query<{ id: string }>(
+            `INSERT INTO project_commits (project_id, parent_commit_id, commit_message)
+             VALUES ($1, $2, $3) RETURNING id`,
+            [projectId, currentCommitId, message]
+        );
+        const newCommitId = commitResult.rows[0]?.id;
+        if (!newCommitId) throw new Error('Insert did not return a commit ID');
+
+        await insertNodes(client, newCommitId, updatedNodes);
+        await insertEdges(client, newCommitId, currentEdges);
+
+        await client.query(
+            `UPDATE project_heads SET current_commit_id = $2 WHERE project_id = $1`,
+            [projectId, newCommitId]
+        );
+
+        await client.query('COMMIT');
+        return newCommitId;
+    } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
+    }
 }

@@ -3,20 +3,36 @@ import ChatPanel from './components/ChatPanel.tsx';
 import HistoryPanel from './components/HistoryPanel.tsx';
 import { useSocket } from './hooks/useSocket.ts';
 import { useHistory } from './hooks/useHistory.ts';
-
-const PROJECT_ID = 'project-1';
+import { useProject } from './hooks/useProject.ts';
 
 export default function App() {
-    useSocket(PROJECT_ID);
-    useHistory(PROJECT_ID);
+    const projectId = useProject();
+
+    useSocket(projectId ?? '');
+    useHistory(projectId ?? '');
+
+    if (!projectId) {
+        return (
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100vh',
+                color: '#64748b',
+                fontSize: 14,
+            }}>
+                Connecting...
+            </div>
+        );
+    }
 
     return (
         <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
             <div style={{ flex: 1, position: 'relative' }}>
-                <Canvas />
-                <HistoryPanel projectId={PROJECT_ID} />
+                <Canvas projectId={projectId} />
+                <HistoryPanel projectId={projectId} />
             </div>
-            <ChatPanel projectId={PROJECT_ID} />
+            <ChatPanel projectId={projectId} />
         </div>
     );
 }

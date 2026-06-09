@@ -9,8 +9,6 @@ interface HistoryPanelProps {
 export default function HistoryPanel({ projectId }: HistoryPanelProps) {
     const commitHistory = useGraphStore((state) => state.commitHistory);
     const activeCommitId = useGraphStore((state) => state.activeCommitId);
-    const applyRollback = useGraphStore((state) => state.applyRollback);
-    const setHistory = useGraphStore((state) => state.setHistory);
     const [rollingBack, setRollingBack] = useState<string | null>(null);
 
     if (commitHistory.length === 0) return null;
@@ -24,14 +22,7 @@ export default function HistoryPanel({ projectId }: HistoryPanelProps) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ commitId }),
             });
-            if (res.ok) {
-                const data = await res.json() as { commitId: string };
-                // optimistically mark the active commit — socket event will confirm
-                applyRollback({ commitId: data.commitId, graphState: { nodes: [], edges: [] } });
-                const histRes = await fetch(`/projects/${projectId}/history`);
-                const history = await histRes.json() as Parameters<typeof setHistory>[0];
-                setHistory(history);
-            }
+            // The socket 'rollback' event owns state restoration and history refresh
         } finally {
             setRollingBack(null);
         }

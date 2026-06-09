@@ -1,13 +1,15 @@
 import http from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
-import { createApp } from './app.js';
+import app from './app.js';
 import { connectRedis } from './services/redisService.js';
 import { startRedisSubscriber } from './services/redisSubscriber.js';
+import { createRollbackController } from './controllers/rollbackController.js';
+import { createManualDragController } from './controllers/manualDragController.js';
 
 dotenv.config();
 
-const server = http.createServer();
+const server = http.createServer(app);
 
 const io = new Server(server, {
     cors: {
@@ -15,6 +17,10 @@ const io = new Server(server, {
         methods: ['GET', 'POST'],
     },
 });
+
+// Mount io-dependent routes after io is created
+app.post('/projects/:projectId/rollback', createRollbackController(io));
+app.post('/projects/:projectId/drag', createManualDragController(io));
 
 io.on('connection', (socket) => {
     console.log(`Client connected: ${socket.id}`);
@@ -34,7 +40,6 @@ const PORT = process.env.PORT || 5000;
 async function start(): Promise<void> {
     await connectRedis();
     await startRedisSubscriber(io);
-    server.on('request', createApp(io));
     server.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
     });

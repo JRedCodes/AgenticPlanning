@@ -23,7 +23,14 @@ export function useSocket(projectId: string): void {
 
         socket.on('rollback', (state: Parameters<typeof applyRollback>[0]) => {
             applyRollback(state);
-            // re-fetch history so the panel reflects the new head
+            fetch(`/projects/${projectId}/history`)
+                .then((r) => r.json())
+                .then((data) => setHistory(data as Parameters<typeof setHistory>[0]))
+                .catch(() => undefined);
+        });
+
+        socket.on('node:moved', (state: Parameters<typeof applyRollback>[0]) => {
+            applyRollback(state);
             fetch(`/projects/${projectId}/history`)
                 .then((r) => r.json())
                 .then((data) => setHistory(data as Parameters<typeof setHistory>[0]))

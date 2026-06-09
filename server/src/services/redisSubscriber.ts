@@ -40,13 +40,8 @@ export async function startRedisSubscriber(io: Server): Promise<void> {
                 );
 
                 io.to(projectId).emit('worker:event', {
-                    type: 'commit:ready' as const,
+                    type: 'commit:saved' as const,
                     commitId,
-                    nodes: event.nodes,
-                    edges: event.edges,
-                    projectId: event.projectId,
-                    userId: event.userId,
-                    message: event.message,
                     jobId: event.jobId,
                 });
             } catch (err) {

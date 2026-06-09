@@ -2,20 +2,27 @@ import { ReactFlow, Background, Controls, MiniMap, type NodeTypes } from '@xyflo
 import '@xyflow/react/dist/style.css';
 import { useGraphStore } from '../store/graphStore.ts';
 import { SystemNode } from './SystemNode.tsx';
+import { useDrag } from '../hooks/useDrag.ts';
 
 const nodeTypes: NodeTypes = {
     systemNode: SystemNode,
 };
 
-export default function Canvas() {
+interface CanvasProps {
+    projectId: string;
+}
+
+export default function Canvas({ projectId }: CanvasProps) {
     const nodes = useGraphStore((state) => state.nodes);
     const edges = useGraphStore((state) => state.edges);
+    const { onNodesChange } = useDrag(projectId);
 
     return (
         <ReactFlow
             nodes={nodes}
             edges={edges}
             nodeTypes={nodeTypes}
+            onNodesChange={onNodesChange}
             fitView
             fitViewOptions={{ padding: 0.2 }}
             proOptions={{ hideAttribution: true }}

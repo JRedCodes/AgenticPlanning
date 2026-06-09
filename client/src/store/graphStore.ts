@@ -24,10 +24,13 @@ interface GraphStore {
     isWorkerActive: boolean;
     commitHistory: CommitRecord[];
     activeCommitId: string | null;
+    projectId: string | null;
     applyWorkerEvent: (event: WorkerEvent) => void;
     setNodes: (nodes: SystemNode[]) => void;
     setEdges: (edges: Edge[]) => void;
     setHistory: (history: CommitRecord[]) => void;
+    setActiveCommitId: (commitId: string) => void;
+    setProjectId: (id: string) => void;
     applyRollback: (state: { commitId: string; graphState: { nodes: Array<{ id: string; type: string; position: { x: number; y: number }; data: { title: string; syntax: string; dependencies: string[] } }>; edges: Array<{ id: string; source: string; target: string }> } }) => void;
 }
 
@@ -37,10 +40,13 @@ export const useGraphStore = create<GraphStore>((set) => ({
     isWorkerActive: false,
     commitHistory: [],
     activeCommitId: null,
+    projectId: null,
 
     setNodes: (nodes) => set({ nodes }),
     setEdges: (edges) => set({ edges }),
     setHistory: (history) => set({ commitHistory: history }),
+    setActiveCommitId: (commitId) => set({ activeCommitId: commitId }),
+    setProjectId: (id) => set({ projectId: id }),
 
     applyRollback: (state) => set({
         activeCommitId: state.commitId,
@@ -104,7 +110,11 @@ export const useGraphStore = create<GraphStore>((set) => ({
                 break;
 
             case 'commit:ready':
-                set({ isWorkerActive: false, activeCommitId: event.jobId });
+                set({ isWorkerActive: false });
+                break;
+
+            case 'commit:saved':
+                set({ activeCommitId: event.commitId });
                 break;
 
             case 'job:error':
