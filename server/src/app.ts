@@ -4,7 +4,7 @@ import { db } from './services/db.js';
 import { authMiddleware } from './middleware/authMiddleware.js';
 import { handleRegister, handleLogin } from './controllers/authController.js';
 import { handleChat } from './controllers/chatController.js';
-import { handleBootstrap } from './controllers/projectController.js';
+import { handleBootstrap, handleListProjects, handleCreateProject } from './controllers/projectController.js';
 import { handleHistory } from './controllers/historyController.js';
 import { handleGetState } from './controllers/stateController.js';
 
@@ -31,6 +31,8 @@ app.use('/projects', authMiddleware);
 app.use('/chat', authMiddleware);
 
 app.post('/chat', handleChat);
+app.get('/projects', handleListProjects);
+app.post('/projects', handleCreateProject);
 app.get('/projects/bootstrap', handleBootstrap);
 app.get('/projects/:projectId/history', handleHistory);
 app.get('/projects/:projectId/state', handleGetState);

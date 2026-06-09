@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useGraphStore } from '../store/graphStore.ts';
 import { useAuthStore } from '../store/authStore.ts';
 import { authFetch } from '../lib/api.ts';
+import ProjectSwitcher from './ProjectSwitcher.tsx';
 
 interface ChatPanelProps {
     projectId: string;
@@ -53,7 +54,7 @@ export default function ChatPanel({ projectId }: ChatPanelProps) {
         }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #2d2d4e' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#a78bfa' }}>AI Planner</div>
+                    <ProjectSwitcher />
                     <button
                         onClick={handleSignOut}
                         title="Sign out"

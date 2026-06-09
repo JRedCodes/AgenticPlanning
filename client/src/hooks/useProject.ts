@@ -1,21 +1,31 @@
 import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { useGraphStore } from '../store/graphStore.ts';
+import { useGraphStore, type ProjectInfo } from '../store/graphStore.ts';
 import { authFetch } from '../lib/api.ts';
 
 export function useProject(): string | null {
     const projectId = useGraphStore((state) => state.projectId);
     const setProjectId = useGraphStore((state) => state.setProjectId);
+    const setProjects = useGraphStore((state) => state.setProjects);
     const applyRollback = useGraphStore((state) => state.applyRollback);
     const setNeedsFitView = useGraphStore((state) => state.setNeedsFitView);
 
     useEffect(() => {
         async function bootstrap() {
             try {
-                const res = await authFetch('/projects/bootstrap');
-                if (!res.ok) return;
-                const { projectId: id } = await res.json() as { projectId: string };
+                const [bootstrapRes, listRes] = await Promise.all([
+                    authFetch('/projects/bootstrap'),
+                    authFetch('/projects'),
+                ]);
+
+                if (!bootstrapRes.ok) return;
+                const { projectId: id } = await bootstrapRes.json() as { projectId: string };
                 setProjectId(id);
+
+                if (listRes.ok) {
+                    const list = await listRes.json() as ProjectInfo[];
+                    setProjects(list);
+                }
 
                 const stateRes = await authFetch(`/projects/${id}/state`);
                 if (!stateRes.ok) return;
@@ -29,7 +39,7 @@ export function useProject(): string | null {
             }
         }
         bootstrap();
-    }, [setProjectId, applyRollback, setNeedsFitView]);
+    }, [setProjectId, setProjects, applyRollback, setNeedsFitView]);
 
     return projectId;
 }
