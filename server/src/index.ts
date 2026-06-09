@@ -6,6 +6,7 @@ import { connectRedis } from './services/redisService.js';
 import { startRedisSubscriber } from './services/redisSubscriber.js';
 import { createRollbackController } from './controllers/rollbackController.js';
 import { createManualDragController } from './controllers/manualDragController.js';
+import { createNodeEditController } from './controllers/nodeController.js';
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ const io = new Server(server, {
 // Mount io-dependent routes after io is created
 app.post('/projects/:projectId/rollback', createRollbackController(io));
 app.post('/projects/:projectId/drag', createManualDragController(io));
+app.patch('/projects/:projectId/nodes/:nodeId', createNodeEditController(io));
 
 io.on('connection', (socket) => {
     console.log(`Client connected: ${socket.id}`);

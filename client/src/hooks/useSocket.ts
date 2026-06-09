@@ -65,6 +65,13 @@ export function useSocket(projectId: string): void {
             );
         });
 
+        socket.on('node:updated', (state: Parameters<typeof applyRollback>[0]) => {
+            applyRollback(state);
+            refetchHistory(projectId).catch(() =>
+                toast.error('Failed to refresh history')
+            );
+        });
+
         return () => {
             socket.disconnect();
         };
