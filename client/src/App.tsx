@@ -1,3 +1,4 @@
+import { Toaster } from 'sonner';
 import Canvas from './components/Canvas.tsx';
 import ChatPanel from './components/ChatPanel.tsx';
 import HistoryPanel from './components/HistoryPanel.tsx';
@@ -41,6 +42,10 @@ function Workspace() {
 
 export default function App() {
     const token = useAuthStore((state) => state.token);
-    if (!token) return <AuthModal />;
-    return <Workspace />;
+    return (
+        <>
+            <Toaster theme="dark" position="bottom-right" richColors />
+            {token ? <Workspace /> : <AuthModal />}
+        </>
+    );
 }

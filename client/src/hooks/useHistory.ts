@@ -13,7 +13,7 @@ export function useHistory(projectId: string): void {
                 const data = await res.json() as Parameters<typeof setHistory>[0];
                 setHistory(data);
             } catch {
-                // history unavailable, not fatal
+                console.warn('Could not load commit history');
             }
         }
 
