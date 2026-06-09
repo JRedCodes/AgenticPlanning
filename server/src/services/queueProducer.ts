@@ -1,11 +1,8 @@
 import { Queue } from 'bullmq';
 import { REDIS_CONFIG } from '../config/redis.js';
+import type { ChatJobData } from '@project/shared';
 
-export interface ChatJobData {
-    projectId: string;
-    userId: string;
-    message: string;
-}
+export type { ChatJobData };
 
 export const chatQueue = new Queue<ChatJobData>('chat', {
     connection: REDIS_CONFIG,
