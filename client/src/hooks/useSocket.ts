@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { io, type Socket } from 'socket.io-client';
-import { useGraphStore } from '../store/graphStore.ts';
+import { useGraphStore, type CommitRecord } from '../store/graphStore.ts';
 import { authFetch } from '../lib/api.ts';
+import { applyElkLayout } from '../lib/layout.ts';
 import type { WorkerEvent } from '@project/shared';
 
 export function useSocket(projectId: string): void {
@@ -20,6 +21,25 @@ export function useSocket(projectId: string): void {
 
         socket.on('worker:event', (event: WorkerEvent) => {
             applyWorkerEvent(event);
+
+            if (event.type === 'structure:complete') {
+                // Fit immediately with AI positions so the diagram is always visible
+                useGraphStore.getState().setNeedsFitView(true);
+                const { nodes, edges } = useGraphStore.getState();
+                applyElkLayout(nodes, edges)
+                    .then(layoutedNodes => {
+                        useGraphStore.getState().setNodes(layoutedNodes);
+                        useGraphStore.getState().setNeedsFitView(true);
+                    })
+                    .catch(() => undefined);
+            }
+
+            if (event.type === 'commit:saved') {
+                authFetch(`/projects/${projectId}/history`)
+                    .then(r => r.json())
+                    .then(data => useGraphStore.getState().setHistory(data as CommitRecord[]))
+                    .catch(() => undefined);
+            }
         });
 
         socket.on('rollback', (state: Parameters<typeof applyRollback>[0]) => {

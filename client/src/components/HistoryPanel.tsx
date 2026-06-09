@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { RotateCcw, GitCommit } from 'lucide-react';
 import { useGraphStore } from '../store/graphStore.ts';
+import { authFetch } from '../lib/api.ts';
 
 interface HistoryPanelProps {
     projectId: string;
@@ -17,7 +18,7 @@ export default function HistoryPanel({ projectId }: HistoryPanelProps) {
         if (rollingBack) return;
         setRollingBack(commitId);
         try {
-            const res = await fetch(`/projects/${projectId}/rollback`, {
+            await authFetch(`/projects/${projectId}/rollback`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ commitId }),

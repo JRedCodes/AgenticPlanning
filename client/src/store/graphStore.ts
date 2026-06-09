@@ -31,6 +31,8 @@ interface GraphStore {
     setHistory: (history: CommitRecord[]) => void;
     setActiveCommitId: (commitId: string) => void;
     setProjectId: (id: string) => void;
+    needsFitView: boolean;
+    setNeedsFitView: (value: boolean) => void;
     reset: () => void;
     applyRollback: (state: { commitId: string; graphState: { nodes: Array<{ id: string; type: string; position: { x: number; y: number }; data: { title: string; syntax: string; dependencies: string[] } }>; edges: Array<{ id: string; source: string; target: string }> } }) => void;
 }
@@ -46,9 +48,11 @@ export const useGraphStore = create<GraphStore>((set) => ({
     setNodes: (nodes) => set({ nodes }),
     setEdges: (edges) => set({ edges }),
     setHistory: (history) => set({ commitHistory: history }),
+    needsFitView: false,
     setActiveCommitId: (commitId) => set({ activeCommitId: commitId }),
     setProjectId: (id) => set({ projectId: id }),
-    reset: () => set({ nodes: [], edges: [], commitHistory: [], activeCommitId: null, projectId: null, isWorkerActive: false }),
+    setNeedsFitView: (value) => set({ needsFitView: value }),
+    reset: () => set({ nodes: [], edges: [], commitHistory: [], activeCommitId: null, projectId: null, isWorkerActive: false, needsFitView: false }),
 
     applyRollback: (state) => set({
         activeCommitId: state.commitId,

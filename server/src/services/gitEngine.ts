@@ -156,9 +156,21 @@ export async function getCommitHistory(projectId: string): Promise<CommitRecord[
         commit_message: string;
         created_at: Date;
     }>(
-        `SELECT id, parent_commit_id, commit_message, created_at
-         FROM project_commits WHERE project_id = $1
-         ORDER BY created_at DESC`,
+        `WITH RECURSIVE commit_chain AS (
+            SELECT pc.id, pc.parent_commit_id, pc.commit_message, pc.created_at
+            FROM project_heads ph
+            JOIN project_commits pc ON pc.id = ph.current_commit_id
+            WHERE ph.project_id = $1
+
+            UNION ALL
+
+            SELECT pc.id, pc.parent_commit_id, pc.commit_message, pc.created_at
+            FROM project_commits pc
+            JOIN commit_chain cc ON pc.id = cc.parent_commit_id
+        )
+        SELECT id, parent_commit_id, commit_message, created_at
+        FROM commit_chain
+        ORDER BY created_at DESC`,
         [projectId]
     );
     return rows.map(r => ({
