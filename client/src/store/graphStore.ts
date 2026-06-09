@@ -4,9 +4,10 @@ import type { WorkerEvent } from '@project/shared';
 
 export interface SystemNodeData extends Record<string, unknown> {
     title: string;
-    syntax: string;
+    description: string;
+    exposes: string[];
+    consumes: string[];
     dependencies: string[];
-    isStreaming: boolean;
 }
 
 export interface CommitRecord {
@@ -53,7 +54,7 @@ interface GraphStore {
     needsFitView: boolean;
     setNeedsFitView: (value: boolean) => void;
     reset: () => void;
-    applyRollback: (state: { commitId: string; graphState: { nodes: Array<{ id: string; type: string; position: { x: number; y: number }; data: { title: string; syntax: string; dependencies: string[] } }>; edges: Array<{ id: string; source: string; target: string }> } }) => void;
+    applyRollback: (state: { commitId: string; graphState: { nodes: Array<{ id: string; type: string; position: { x: number; y: number }; data: { title: string; description?: string; exposes?: string[]; consumes?: string[]; dependencies: string[] } }>; edges: Array<{ id: string; source: string; target: string }> } }) => void;
 }
 
 export const useGraphStore = create<GraphStore>((set) => ({
@@ -73,7 +74,7 @@ export const useGraphStore = create<GraphStore>((set) => ({
     })),
     updateChatMessage: (jobId, content) => set((state) => ({
         chatMessages: state.chatMessages.map(m =>
-            m.jobId === jobId ? { ...m, content } : m
+            m.jobId === jobId && m.role === 'assistant' ? { ...m, content } : m
         ),
     })),
     needsFitView: false,
@@ -100,7 +101,13 @@ export const useGraphStore = create<GraphStore>((set) => ({
             id: n.id,
             type: 'systemNode',
             position: n.position,
-            data: { title: n.data.title, syntax: n.data.syntax, dependencies: n.data.dependencies, isStreaming: false },
+            data: {
+                title: n.data.title,
+                description: n.data.description ?? '',
+                exposes: n.data.exposes ?? [],
+                consumes: n.data.consumes ?? [],
+                dependencies: n.data.dependencies,
+            },
         })),
         edges: state.graphState.edges.map((e) => ({
             id: e.id,
@@ -121,9 +128,10 @@ export const useGraphStore = create<GraphStore>((set) => ({
                         position: n.position,
                         data: {
                             title: n.data.title,
-                            syntax: '',
+                            description: n.data.description,
+                            exposes: n.data.exposes,
+                            consumes: n.data.consumes,
                             dependencies: n.data.dependencies,
-                            isStreaming: false,
                         },
                     })),
                     edges: event.edges.map((e) => ({
@@ -133,26 +141,6 @@ export const useGraphStore = create<GraphStore>((set) => ({
                         animated: true,
                     })),
                 });
-                break;
-
-            case 'syntax:delta':
-                set((state) => ({
-                    nodes: state.nodes.map((n) =>
-                        n.id === event.nodeId
-                            ? { ...n, data: { ...n.data, syntax: n.data.syntax + event.chunk, isStreaming: true } }
-                            : n
-                    ),
-                }));
-                break;
-
-            case 'syntax:complete':
-                set((state) => ({
-                    nodes: state.nodes.map((n) =>
-                        n.id === event.nodeId
-                            ? { ...n, data: { ...n.data, syntax: event.syntax, isStreaming: false } }
-                            : n
-                    ),
-                }));
                 break;
 
             case 'commit:ready':

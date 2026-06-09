@@ -1,188 +1,213 @@
 import { useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Code, ChevronDown, ChevronUp, Pencil, X, Plus, Check } from 'lucide-react';
+import { motion } from 'motion/react';
+import { Pencil, X, Plus, Check, ArrowUpRight, ArrowDownLeft, ChevronDown } from 'lucide-react';
 import type { SystemNodeData } from '../store/graphStore.ts';
-import { useNodeEdit } from '../hooks/useNodeEdit.ts';
+import { useNodeEdit, type NodeEditData } from '../hooks/useNodeEdit.ts';
 
 interface SystemNodeProps {
     id: string;
     data: SystemNodeData;
 }
 
+function TagList({
+    items,
+    color,
+}: {
+    items: string[];
+    color: string;
+}) {
+    if (items.length === 0) return null;
+    return (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+            {items.map((item) => (
+                <span
+                    key={item}
+                    style={{
+                        fontSize: 10,
+                        background: '#111120',
+                        color,
+                        borderRadius: 4,
+                        padding: '2px 6px',
+                        border: `1px solid ${color}22`,
+                    }}
+                >
+                    {item}
+                </span>
+            ))}
+        </div>
+    );
+}
+
+function EditableTagList({
+    items,
+    onChange,
+    placeholder,
+}: {
+    items: string[];
+    onChange: (items: string[]) => void;
+    placeholder: string;
+}) {
+    const [input, setInput] = useState('');
+
+    function add() {
+        const t = input.trim();
+        if (t && !items.includes(t)) onChange([...items, t]);
+        setInput('');
+    }
+
+    return (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+            {items.map(item => (
+                <span
+                    key={item}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        fontSize: 10,
+                        background: '#2d2d4e',
+                        color: '#94a3b8',
+                        borderRadius: 4,
+                        padding: '2px 4px 2px 6px',
+                    }}
+                >
+                    {item}
+                    <button
+                        onClick={() => onChange(items.filter(i => i !== item))}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 0, display: 'flex' }}
+                    >
+                        <X size={9} />
+                    </button>
+                </span>
+            ))}
+            <div style={{ display: 'flex', gap: 3 }}>
+                <input
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
+                    placeholder={placeholder}
+                    style={{
+                        width: 80,
+                        background: '#111120',
+                        border: '1px solid #2d2d4e',
+                        borderRadius: 4,
+                        color: '#94a3b8',
+                        fontSize: 10,
+                        padding: '2px 5px',
+                        outline: 'none',
+                    }}
+                />
+                <button onClick={add} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}>
+                    <Plus size={10} />
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export function SystemNode({ id, data }: SystemNodeProps) {
     const [expanded, setExpanded] = useState(false);
     const [editing, setEditing] = useState(false);
     const [title, setTitle] = useState(data.title);
+    const [description, setDescription] = useState(data.description);
+    const [exposes, setExposes] = useState<string[]>(data.exposes);
+    const [consumes, setConsumes] = useState<string[]>(data.consumes);
     const [deps, setDeps] = useState<string[]>(data.dependencies);
-    const [syntax, setSyntax] = useState(data.syntax);
-    const [newDep, setNewDep] = useState('');
     const [saving, setSaving] = useState(false);
     const { saveNodeData } = useNodeEdit(id);
 
-    const lineCount = data.syntax ? data.syntax.split('\n').length : 0;
-
     function openEdit() {
         setTitle(data.title);
+        setDescription(data.description);
+        setExposes(data.exposes);
+        setConsumes(data.consumes);
         setDeps(data.dependencies);
-        setSyntax(data.syntax);
         setEditing(true);
-    }
-
-    function cancelEdit() {
-        setEditing(false);
-        setNewDep('');
     }
 
     async function handleSave() {
         if (!title.trim() || saving) return;
         setSaving(true);
-        const ok = await saveNodeData({ title: title.trim(), syntax, dependencies: deps });
+        const editData: NodeEditData = {
+            title: title.trim(),
+            description,
+            exposes,
+            consumes,
+            dependencies: deps,
+        };
+        const ok = await saveNodeData(editData);
         setSaving(false);
         if (ok) setEditing(false);
-    }
-
-    function addDep() {
-        const trimmed = newDep.trim();
-        if (trimmed && !deps.includes(trimmed)) {
-            setDeps([...deps, trimmed]);
-        }
-        setNewDep('');
-    }
-
-    function removeDep(dep: string) {
-        setDeps(deps.filter(d => d !== dep));
     }
 
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.2 }}
             style={{
                 background: '#1a1a2e',
-                border: `1px solid ${data.isStreaming ? '#7c3aed' : editing ? '#a78bfa' : '#2d2d4e'}`,
+                border: `1px solid ${editing ? '#a78bfa' : '#2d2d4e'}`,
                 borderRadius: 8,
                 padding: '12px 14px',
-                minWidth: 200,
+                minWidth: 220,
                 maxWidth: 300,
-                boxShadow: data.isStreaming
-                    ? '0 0 12px rgba(124,58,237,0.3)'
-                    : '0 4px 20px rgba(0,0,0,0.4)',
-                transition: 'border-color 0.2s, box-shadow 0.2s',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
             }}
         >
             <Handle type="target" position={Position.Top} />
 
             {editing ? (
-                // ── Edit mode ────────────────────────────────────────
                 <div onMouseDown={e => e.stopPropagation()}>
                     <input
                         value={title}
                         onChange={e => setTitle(e.target.value)}
-                        placeholder="Node title"
                         autoFocus
+                        placeholder="Component name"
                         style={{
-                            width: '100%',
-                            background: '#111120',
-                            border: '1px solid #2d2d4e',
-                            borderRadius: 5,
-                            color: '#a78bfa',
-                            fontSize: 13,
-                            fontWeight: 600,
-                            padding: '4px 8px',
-                            outline: 'none',
-                            marginBottom: 8,
-                            boxSizing: 'border-box',
+                            width: '100%', background: '#111120', border: '1px solid #2d2d4e',
+                            borderRadius: 5, color: '#a78bfa', fontSize: 13, fontWeight: 600,
+                            padding: '4px 8px', outline: 'none', marginBottom: 8, boxSizing: 'border-box',
                         }}
                     />
 
-                    <div style={{ fontSize: 10, color: '#475569', marginBottom: 4 }}>Dependencies</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
-                        {deps.map(dep => (
-                            <span
-                                key={dep}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 3,
-                                    fontSize: 10,
-                                    background: '#2d2d4e',
-                                    color: '#94a3b8',
-                                    borderRadius: 4,
-                                    padding: '2px 4px 2px 6px',
-                                }}
-                            >
-                                {dep}
-                                <button
-                                    onClick={() => removeDep(dep)}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 0, display: 'flex' }}
-                                >
-                                    <X size={9} />
-                                </button>
-                            </span>
-                        ))}
-                        <div style={{ display: 'flex', gap: 3 }}>
-                            <input
-                                value={newDep}
-                                onChange={e => setNewDep(e.target.value)}
-                                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addDep(); } }}
-                                placeholder="add dep"
-                                style={{
-                                    width: 60,
-                                    background: '#111120',
-                                    border: '1px solid #2d2d4e',
-                                    borderRadius: 4,
-                                    color: '#94a3b8',
-                                    fontSize: 10,
-                                    padding: '2px 5px',
-                                    outline: 'none',
-                                }}
-                            />
-                            <button onClick={addDep} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}>
-                                <Plus size={10} />
-                            </button>
-                        </div>
+                    <div style={{ fontSize: 10, color: '#475569', marginBottom: 3 }}>Description</div>
+                    <textarea
+                        value={description}
+                        onChange={e => setDescription(e.target.value)}
+                        rows={2}
+                        placeholder="What does this component do?"
+                        style={{
+                            width: '100%', background: '#111120', border: '1px solid #2d2d4e',
+                            borderRadius: 5, color: '#94a3b8', fontSize: 11, padding: '5px 8px',
+                            outline: 'none', resize: 'none', boxSizing: 'border-box', marginBottom: 8,
+                        }}
+                    />
+
+                    <div style={{ fontSize: 10, color: '#475569', marginBottom: 3 }}>Exposes</div>
+                    <div style={{ marginBottom: 8 }}>
+                        <EditableTagList items={exposes} onChange={setExposes} placeholder="POST /endpoint" />
                     </div>
 
-                    <div style={{ fontSize: 10, color: '#475569', marginBottom: 4 }}>Syntax</div>
-                    <textarea
-                        value={syntax}
-                        onChange={e => setSyntax(e.target.value)}
-                        rows={6}
-                        style={{
-                            width: '100%',
-                            background: '#0f0f1a',
-                            border: '1px solid #2d2d4e',
-                            borderRadius: 4,
-                            color: '#e2e8f0',
-                            fontSize: 10,
-                            fontFamily: 'monospace',
-                            padding: '6px 8px',
-                            outline: 'none',
-                            resize: 'vertical',
-                            boxSizing: 'border-box',
-                            marginBottom: 8,
-                        }}
-                    />
+                    <div style={{ fontSize: 10, color: '#475569', marginBottom: 3 }}>Consumes</div>
+                    <div style={{ marginBottom: 8 }}>
+                        <EditableTagList items={consumes} onChange={setConsumes} placeholder="Other service" />
+                    </div>
+
+                    <div style={{ fontSize: 10, color: '#475569', marginBottom: 3 }}>Dependencies</div>
+                    <div style={{ marginBottom: 10 }}>
+                        <EditableTagList items={deps} onChange={setDeps} placeholder="npm package" />
+                    </div>
 
                     <div style={{ display: 'flex', gap: 6 }}>
                         <button
                             onClick={handleSave}
                             disabled={!title.trim() || saving}
                             style={{
-                                flex: 1,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: 4,
-                                background: '#7c3aed',
-                                border: 'none',
-                                borderRadius: 5,
-                                color: '#fff',
-                                fontSize: 11,
-                                fontWeight: 600,
-                                padding: '5px 0',
+                                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                gap: 4, background: '#7c3aed', border: 'none', borderRadius: 5,
+                                color: '#fff', fontSize: 11, fontWeight: 600, padding: '5px 0',
                                 cursor: title.trim() && !saving ? 'pointer' : 'not-allowed',
                                 opacity: title.trim() && !saving ? 1 : 0.5,
                             }}
@@ -191,16 +216,10 @@ export function SystemNode({ id, data }: SystemNodeProps) {
                             {saving ? 'Saving...' : 'Save'}
                         </button>
                         <button
-                            onClick={cancelEdit}
+                            onClick={() => setEditing(false)}
                             style={{
-                                flex: 1,
-                                background: 'none',
-                                border: '1px solid #2d2d4e',
-                                borderRadius: 5,
-                                color: '#64748b',
-                                fontSize: 11,
-                                padding: '5px 0',
-                                cursor: 'pointer',
+                                flex: 1, background: 'none', border: '1px solid #2d2d4e',
+                                borderRadius: 5, color: '#64748b', fontSize: 11, padding: '5px 0', cursor: 'pointer',
                             }}
                         >
                             Cancel
@@ -208,101 +227,76 @@ export function SystemNode({ id, data }: SystemNodeProps) {
                     </div>
                 </div>
             ) : (
-                // ── View mode ────────────────────────────────────────
                 <>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: '#a78bfa', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {/* Title row */}
+                    {/* Title + action buttons */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: data.dependencies?.length > 0 ? 6 : 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: '#a78bfa', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {data.title}
                         </div>
-                        <button
-                            onClick={openEdit}
-                            title="Edit node"
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                color: '#2d2d4e',
-                                padding: '0 0 0 6px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                flexShrink: 0,
-                            }}
-                            onMouseEnter={e => (e.currentTarget.style.color = '#64748b')}
-                            onMouseLeave={e => (e.currentTarget.style.color = '#2d2d4e')}
-                        >
-                            <Pencil size={11} />
-                        </button>
+                        <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                            <button
+                                onClick={() => setExpanded(v => !v)}
+                                title={expanded ? 'Collapse' : 'Expand'}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: expanded ? '#a78bfa' : '#2d2d4e', padding: '0 2px', display: 'flex' }}
+                                onMouseEnter={e => { if (!expanded) e.currentTarget.style.color = '#64748b'; }}
+                                onMouseLeave={e => { if (!expanded) e.currentTarget.style.color = '#2d2d4e'; }}
+                            >
+                                <ChevronDown size={12} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                            </button>
+                            <button
+                                onClick={openEdit}
+                                title="Edit node"
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2d2d4e', padding: '0 0 0 2px', display: 'flex' }}
+                                onMouseEnter={e => (e.currentTarget.style.color = '#64748b')}
+                                onMouseLeave={e => (e.currentTarget.style.color = '#2d2d4e')}
+                            >
+                                <Pencil size={11} />
+                            </button>
+                        </div>
                     </div>
 
-                    {data.dependencies.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
+                    {/* Dependencies always visible */}
+                    {data.dependencies?.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
                             {data.dependencies.map((dep) => (
-                                <span
-                                    key={dep}
-                                    style={{
-                                        fontSize: 10,
-                                        background: '#2d2d4e',
-                                        color: '#94a3b8',
-                                        borderRadius: 4,
-                                        padding: '2px 6px',
-                                    }}
-                                >
+                                <span key={dep} style={{ fontSize: 10, background: '#2d2d4e', color: '#64748b', borderRadius: 4, padding: '2px 6px' }}>
                                     {dep}
                                 </span>
                             ))}
                         </div>
                     )}
 
-                    {data.syntax && (
-                        <button
-                            onClick={() => setExpanded(v => !v)}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 6,
-                                background: 'none',
-                                border: 'none',
-                                color: '#64748b',
-                                fontSize: 11,
-                                cursor: 'pointer',
-                                padding: '2px 0',
-                                width: '100%',
-                            }}
-                        >
-                            <Code size={11} />
-                            <span>{lineCount} lines</span>
-                            {expanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-                        </button>
-                    )}
+                    {/* Expanded detail */}
+                    {expanded && (
+                        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #1f1f35' }}>
+                            {data.description && (
+                                <p style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.5, margin: '0 0 8px 0' }}>
+                                    {data.description}
+                                </p>
+                            )}
 
-                    <AnimatePresence>
-                        {expanded && data.syntax && (
-                            <motion.pre
-                                key="syntax"
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                transition={{ duration: 0.2 }}
-                                style={{
-                                    marginTop: 8,
-                                    fontSize: 10,
-                                    lineHeight: 1.5,
-                                    color: '#e2e8f0',
-                                    background: '#0f0f1a',
-                                    borderRadius: 4,
-                                    padding: '6px 8px',
-                                    overflowX: 'auto',
-                                    whiteSpace: 'pre-wrap',
-                                    wordBreak: 'break-word',
-                                    borderLeft: '2px solid #7c3aed',
-                                    maxHeight: 240,
-                                    overflowY: 'auto',
-                                }}
-                            >
-                                {data.syntax}
-                            </motion.pre>
-                        )}
-                    </AnimatePresence>
+                            {data.exposes?.length > 0 && (
+                                <div style={{ marginBottom: 6 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
+                                        <ArrowUpRight size={10} color="#34d399" />
+                                        <span style={{ fontSize: 10, color: '#34d399', fontWeight: 600, letterSpacing: '0.04em' }}>EXPOSES</span>
+                                    </div>
+                                    <TagList items={data.exposes} color="#34d399" />
+                                </div>
+                            )}
+
+                            {data.consumes?.length > 0 && (
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
+                                        <ArrowDownLeft size={10} color="#60a5fa" />
+                                        <span style={{ fontSize: 10, color: '#60a5fa', fontWeight: 600, letterSpacing: '0.04em' }}>CONSUMES</span>
+                                    </div>
+                                    <TagList items={data.consumes} color="#60a5fa" />
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </>
             )}
 

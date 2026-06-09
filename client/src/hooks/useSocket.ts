@@ -30,7 +30,7 @@ export function useSocket(projectId: string): void {
             applyWorkerEvent(event);
 
             if (event.type === 'structure:complete') {
-                useGraphStore.getState().updateChatMessage(event.jobId, 'Building syntax...');
+                useGraphStore.getState().updateChatMessage(event.jobId, 'Generating...');
                 useGraphStore.getState().setNeedsFitView(true);
                 const { nodes, edges } = useGraphStore.getState();
                 applyElkLayout(nodes, edges)

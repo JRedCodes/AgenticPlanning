@@ -2,9 +2,11 @@ import { toast } from 'sonner';
 import { useGraphStore } from '../store/graphStore.ts';
 import { authFetch } from '../lib/api.ts';
 
-interface NodeData {
+export interface NodeEditData {
     title: string;
-    syntax: string;
+    description: string;
+    exposes: string[];
+    consumes: string[];
     dependencies: string[];
 }
 
@@ -15,7 +17,7 @@ export function useNodeEdit(nodeId: string) {
     const applyRollback = useGraphStore((state) => state.applyRollback);
     const setNeedsFitView = useGraphStore((state) => state.setNeedsFitView);
 
-    async function saveNodeData(data: NodeData): Promise<boolean> {
+    async function saveNodeData(data: NodeEditData): Promise<boolean> {
         if (!projectId || !activeCommitId) return false;
 
         try {

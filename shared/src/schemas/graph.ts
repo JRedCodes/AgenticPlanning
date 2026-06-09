@@ -2,7 +2,9 @@ import { z } from 'zod';
 
 export const NodeDataSchema = z.object({
     title: z.string(),
-    syntax: z.string(),
+    description: z.string(),
+    exposes: z.array(z.string()),
+    consumes: z.array(z.string()),
     dependencies: z.array(z.string()),
     metadata: z.record(z.string(), z.any()).optional()
 });

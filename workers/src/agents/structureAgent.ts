@@ -10,7 +10,9 @@ const StructureOutputSchema = z.object({
         position: z.object({ x: z.number(), y: z.number() }),
         data: z.object({
             title: z.string(),
-            syntax: z.string(),
+            description: z.string(),
+            exposes: z.array(z.string()),
+            consumes: z.array(z.string()),
             dependencies: z.array(z.string()),
         }),
     })),
@@ -23,14 +25,16 @@ const StructureOutputSchema = z.object({
 
 export type StructureOutput = z.infer<typeof StructureOutputSchema>;
 
-const SHARED_RULES = `Rules for all nodes:
-- Node ids must be snake_case and descriptive: "auth_service", "postgres_db"
+const SHARED_RULES = `Rules:
+- Node ids must be snake_case: "auth_service", "postgres_db", "api_gateway"
 - Node type must always be "systemNode"
 - Position nodes on a grid: x and y values spaced 250px apart, starting at x:100 y:100
-- Each node's data.syntax must be an empty string (will be filled later)
-- Each node's data.dependencies must list relevant npm packages
+- description: 1–2 sentences on what this component does and why it exists
+- exposes: list of HTTP endpoints, events, or APIs this node provides (e.g. "POST /auth/login", "event: UserCreated")
+- consumes: list of other nodes or external services this node calls (e.g. "PostgreSQL Database", "Stripe API")
+- dependencies: relevant npm package names (e.g. ["express", "jsonwebtoken"])
 - Edges must have id format "edge__{source}__{target}"
-- Only connect nodes that have a direct data or control flow relationship`;
+- Only connect nodes with a direct data or control flow relationship`;
 
 function buildPrompt(
     message: string,
@@ -38,7 +42,7 @@ function buildPrompt(
     previousErrors?: string[]
 ): string {
     const retryContext = previousErrors?.length
-        ? `\n\nYour previous response was rejected for the following reasons:\n${previousErrors.map(e => `- ${e}`).join('\n')}\n\nFix ALL of these issues in your new response.`
+        ? `\n\nYour previous response was rejected:\n${previousErrors.map(e => `- ${e}`).join('\n')}\nFix ALL of these issues.`
         : '';
 
     if (existingNodes?.length) {
@@ -55,10 +59,10 @@ User request: "${message}"
 
 ${SHARED_RULES}
 
-Important modification rules:
-- Preserve the IDs of nodes the user did NOT ask to change
-- Only add, remove, or modify nodes that are directly relevant to the request
-- Maintain existing connections that are still valid after the change
+Modification rules:
+- Preserve the IDs and descriptions of nodes the user did NOT ask to change
+- Only add, remove, or modify nodes directly relevant to the request
+- Maintain existing connections that are still valid
 - Do NOT redesign the entire system — make targeted changes only${retryContext}`;
     }
 
