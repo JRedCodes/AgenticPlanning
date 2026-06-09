@@ -9,24 +9,54 @@ export interface SystemNodeData extends Record<string, unknown> {
     isStreaming: boolean;
 }
 
+export interface CommitRecord {
+    id: string;
+    parentCommitId: string | null;
+    commitMessage: string;
+    createdAt: string;
+}
+
 type SystemNode = Node<SystemNodeData>;
 
 interface GraphStore {
     nodes: SystemNode[];
     edges: Edge[];
     isWorkerActive: boolean;
+    commitHistory: CommitRecord[];
+    activeCommitId: string | null;
     applyWorkerEvent: (event: WorkerEvent) => void;
     setNodes: (nodes: SystemNode[]) => void;
     setEdges: (edges: Edge[]) => void;
+    setHistory: (history: CommitRecord[]) => void;
+    applyRollback: (state: { commitId: string; graphState: { nodes: Array<{ id: string; type: string; position: { x: number; y: number }; data: { title: string; syntax: string; dependencies: string[] } }>; edges: Array<{ id: string; source: string; target: string }> } }) => void;
 }
 
 export const useGraphStore = create<GraphStore>((set) => ({
     nodes: [],
     edges: [],
     isWorkerActive: false,
+    commitHistory: [],
+    activeCommitId: null,
 
     setNodes: (nodes) => set({ nodes }),
     setEdges: (edges) => set({ edges }),
+    setHistory: (history) => set({ commitHistory: history }),
+
+    applyRollback: (state) => set({
+        activeCommitId: state.commitId,
+        nodes: state.graphState.nodes.map((n) => ({
+            id: n.id,
+            type: 'systemNode',
+            position: n.position,
+            data: { title: n.data.title, syntax: n.data.syntax, dependencies: n.data.dependencies, isStreaming: false },
+        })),
+        edges: state.graphState.edges.map((e) => ({
+            id: e.id,
+            source: e.source,
+            target: e.target,
+            animated: true,
+        })),
+    }),
 
     applyWorkerEvent: (event) => {
         switch (event.type) {
@@ -74,7 +104,7 @@ export const useGraphStore = create<GraphStore>((set) => ({
                 break;
 
             case 'commit:ready':
-                set({ isWorkerActive: false });
+                set({ isWorkerActive: false, activeCommitId: event.jobId });
                 break;
 
             case 'job:error':
