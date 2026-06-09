@@ -9,8 +9,8 @@ pool.on('error', (err: Error) => {
 
 
 export const db = {
-    query: (text: string, params?: any[]): Promise<pg.QueryResult> => {
-        return pool.query(text, params);
+    query: <T extends pg.QueryResultRow = pg.QueryResultRow>(text: string, params?: unknown[]): Promise<pg.QueryResult<T>> => {
+        return pool.query<T>(text, params);
     },
 
     getClient: (): Promise<pg.PoolClient> => {
