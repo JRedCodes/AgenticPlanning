@@ -1,9 +1,16 @@
 import { useEffect, useRef } from 'react';
 import { io, type Socket } from 'socket.io-client';
+import { toast } from 'sonner';
 import { useGraphStore, type CommitRecord } from '../store/graphStore.ts';
 import { authFetch } from '../lib/api.ts';
 import { applyElkLayout } from '../lib/layout.ts';
 import type { WorkerEvent } from '@project/shared';
+
+async function refetchHistory(projectId: string): Promise<void> {
+    const r = await authFetch(`/projects/${projectId}/history`);
+    const data = await r.json() as CommitRecord[];
+    useGraphStore.getState().setHistory(data);
+}
 
 export function useSocket(projectId: string): void {
     const socketRef = useRef<Socket | null>(null);
@@ -23,7 +30,6 @@ export function useSocket(projectId: string): void {
             applyWorkerEvent(event);
 
             if (event.type === 'structure:complete') {
-                // Fit immediately with AI positions so the diagram is always visible
                 useGraphStore.getState().setNeedsFitView(true);
                 const { nodes, edges } = useGraphStore.getState();
                 applyElkLayout(nodes, edges)
@@ -31,31 +37,32 @@ export function useSocket(projectId: string): void {
                         useGraphStore.getState().setNodes(layoutedNodes);
                         useGraphStore.getState().setNeedsFitView(true);
                     })
-                    .catch(() => undefined);
+                    .catch(() => toast.error('Layout failed — using default positions'));
             }
 
             if (event.type === 'commit:saved') {
-                authFetch(`/projects/${projectId}/history`)
-                    .then(r => r.json())
-                    .then(data => useGraphStore.getState().setHistory(data as CommitRecord[]))
-                    .catch(() => undefined);
+                refetchHistory(projectId).catch(() =>
+                    toast.error('Failed to refresh history')
+                );
+            }
+
+            if (event.type === 'job:error') {
+                toast.error(`Generation failed: ${event.message}`);
             }
         });
 
         socket.on('rollback', (state: Parameters<typeof applyRollback>[0]) => {
             applyRollback(state);
-            authFetch(`/projects/${projectId}/history`)
-                .then((r) => r.json())
-                .then((data) => setHistory(data as Parameters<typeof setHistory>[0]))
-                .catch(() => undefined);
+            refetchHistory(projectId).catch(() =>
+                toast.error('Failed to refresh history after rollback')
+            );
         });
 
         socket.on('node:moved', (state: Parameters<typeof applyRollback>[0]) => {
             applyRollback(state);
-            authFetch(`/projects/${projectId}/history`)
-                .then((r) => r.json())
-                .then((data) => setHistory(data as Parameters<typeof setHistory>[0]))
-                .catch(() => undefined);
+            refetchHistory(projectId).catch(() =>
+                toast.error('Failed to refresh history')
+            );
         });
 
         return () => {

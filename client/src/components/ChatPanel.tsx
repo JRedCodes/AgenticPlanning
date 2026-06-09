@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Send, LogOut } from 'lucide-react';
+import { toast } from 'sonner';
 import { useGraphStore } from '../store/graphStore.ts';
 import { useAuthStore } from '../store/authStore.ts';
 import { authFetch } from '../lib/api.ts';
@@ -33,8 +34,8 @@ export default function ChatPanel({ projectId }: ChatPanelProps) {
                 body: JSON.stringify({ projectId, message }),
             });
             setMessage('');
-        } catch (err) {
-            console.error('Failed to send chat:', err);
+        } catch {
+            toast.error('Failed to send message — is the server running?');
         } finally {
             setIsLoading(false);
         }

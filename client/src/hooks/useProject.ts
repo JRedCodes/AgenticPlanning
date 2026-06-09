@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 import { useGraphStore } from '../store/graphStore.ts';
 import { authFetch } from '../lib/api.ts';
 
@@ -24,7 +25,7 @@ export function useProject(): string | null {
                     setNeedsFitView(true);
                 }
             } catch {
-                console.error('Failed to bootstrap project');
+                toast.error('Failed to connect to project — try refreshing');
             }
         }
         bootstrap();

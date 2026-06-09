@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { applyNodeChanges, type NodeChange } from '@xyflow/react';
+import { toast } from 'sonner';
 import { useGraphStore, type SystemNodeData } from '../store/graphStore.ts';
 import { authFetch } from '../lib/api.ts';
 import type { Node } from '@xyflow/react';
@@ -34,6 +35,7 @@ export function useDrag(projectId: string) {
                 });
 
                 if (res.status === 409) {
+                    toast.warning('Canvas updated elsewhere — restoring latest version');
                     const stateRes = await authFetch(`/projects/${projectId}/state`);
                     if (stateRes.ok) {
                         const state = await stateRes.json() as Parameters<typeof applyRollback>[0];
@@ -52,7 +54,7 @@ export function useDrag(projectId: string) {
                     }
                 }
             } catch {
-                console.error('Failed to persist node position');
+                toast.error('Failed to save node position');
             }
         }
 
